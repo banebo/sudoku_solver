@@ -158,7 +158,7 @@ class Board:
             if len(info) != 9:
                 err = R + "\n\n[-] Invalid line {}\n" + W
                 raise BadLineException(err.format(counter))
-            error_msg = R + "\n\n[-] Invalid value {} at line {}\n" + W
+            error_msg = R + "\n\n[-] Invalid value '{}' at line {}\n" + W
             for x, val in enumerate(info):
                 try:
                     n = eval(val.strip(" \n"))
