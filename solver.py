@@ -69,26 +69,17 @@ class Node:
     # -- get end --
 
     # SET
-    def set_solved(self, t): self.__solved = t
-
     def set_value(self, n): self.__value = n
 
     def set_possible_vals(self, poss_vals):
         self.__possible_vals = poss_vals
-    # -- set end --
 
     def set_coords(self, x, y):
         if self.__x is None:
             self.__x = x
         if self.__y is None:
             self.__y = y
-
-    # remove
-    def remove(self, n):
-        if n in self.__possible_vals:
-            self.__possible_vals.remove(n)
-            return True
-        return False
+    # -- set end --
 
 
 class Board:
@@ -96,7 +87,6 @@ class Board:
         Class Board represents the sudoku board. The matrix of Nodes 9x9.
         The value fields which are empty is 0 (zero).
     """
-
     def __init__(self, file_name=None, board=None):
         if not (file_name or board):
             raise TypeError(R + "\n\n[-] Error in Board.__init__()\n" + W)
@@ -285,6 +275,7 @@ class Board:
                         y1, y2 = y_list[0], y_list[-1]
                         vals = self.get_box_vals(x1, x2, y1, y2)
         return vals
+    # -- get end --
 
     def assign_possible_vals(self):
         ''' Assigns possible values to all non zero value nodes '''
@@ -311,7 +302,7 @@ class Board:
                 node.set_possible_vals(possible_vals)
 
     def solve1(self, verbose=False):
-        ''' solves the board sort of recursivly using solve_rek()'''
+        ''' Solves the board sort of recursivly using solve_rek()'''
         print("\n[*] Solving...")
         if self.solve_rek(verbose):
             print("[+] Done")
