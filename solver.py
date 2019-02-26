@@ -11,7 +11,6 @@
 ###########
 import os
 import datetime
-import random
 import time
 # -- import end --
 
