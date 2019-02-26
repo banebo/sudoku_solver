@@ -222,11 +222,6 @@ class Board:
                     unsolved.append(board[x][y])
         return unsolved
 
-    def get_node(self, x, y):
-        if (0 <= x < 9) and (0 <= y < 9):
-            return self.__board[x][y]
-        return None
-
     def get_verticals(self, node_obj=None, xpos=None):
         '''
             Returns a list of values in a vertical line of the board; x is same
