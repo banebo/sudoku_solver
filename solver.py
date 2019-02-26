@@ -278,7 +278,7 @@ class Board:
     # -- get end --
 
     def assign_possible_vals(self):
-        ''' Assigns possible values to all non zero value nodes '''
+        ''' Assigns possible values to all zero value nodes '''
         if self.__board is None:
             print("\n\n[-] No board\n")
             exit(1)
