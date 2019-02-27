@@ -12,6 +12,7 @@
 import os
 import datetime
 import time
+import random
 # -- import end --
 
 ##################
@@ -80,6 +81,10 @@ class Node:
         if self.__y is None:
             self.__y = y
     # -- set end --
+
+    def remove_poss_val(self, val):
+        if val in self.__possible_vals:
+            self.__possible_vals.remove(val)
 
 
 class Board:
@@ -301,18 +306,24 @@ class Board:
                 possible_vals = set.difference(all_vals, vUhUb)
                 node.set_possible_vals(possible_vals)
 
-    def solve1(self, verbose=False):
-        ''' Solves the board sort of recursivly using solve_rek()'''
-        print("\n[*] Solving...")
-        if self.solve_rek(verbose):
-            print("[+] Done")
-            return self
-        print(R, "\n\n[-] Couldn't solve...\n", W)
-        return None
-
-    def solve_rek(self, verbose=False):
+    def solve(self, verbose=False):
+        '''
+            Solves the board recursivly
+            1. ckecks if the board is solved
+            2. checks if the board is valid
+            3. assigns possible vals to nodes where value is 0 (zero)
+            4. sorts the unsolved node list so that the nodes with the least
+               possible values are first in line
+            5. assigns the first in the list to 'node' var.
+            6. for i: i > 0; i < len(node.__possible_values())
+               - get a random value 'val' from possible_vals
+               - remove that value from possible_vals
+               - set node.__value to 'val'
+               - start recursion
+            7. before exiting, set node.__value to 0 (zero)
+        '''
         if verbose:
-            time.sleep(0.5)
+            time.sleep(0.3)
             print(self.__str__())
         if self.is_solved():
             return True
@@ -322,9 +333,11 @@ class Board:
         unsolved_list = sorted(self.get_unsolved(),
                                key=lambda x: len(x.get_possible_vals()))
         node = unsolved_list[0]
-        for val in node.get_possible_vals():
+        for i in range(len(node.get_possible_vals())):
+            val = random.choice(list(node.get_possible_vals()))
+            node.remove_poss_val(val)
             node.set_value(val)
-            if self.solve_rek(verbose):
+            if self.solve(verbose):
                 return True
         node.set_value(0)
         return False
@@ -349,15 +362,20 @@ def main():
 
           ''', W)
     file = input("\n[?] Enter file name: ")
-    board1 = Board(file_name=file)
-    print(board1)
+    board = Board(file_name=file)
+    print(board)
     now1 = datetime.datetime.now()
-    solved = board1.solve1(verbose=False)
-    now2 = datetime.datetime.now()
-    delta_t = now2 - now1
-    print("\n[*] It took me {:.2f}".format(delta_t.total_seconds()),
-          "seconds to solve this.")
-    print(solved, "\n")
+    print("\n[*] Solving...")
+    if board.solve(verbose=False):
+        print("[+] Done")
+        now2 = datetime.datetime.now()
+        delta_t = now2 - now1
+        print("\n[*] It took me {:.2f}".format(delta_t.total_seconds()),
+              "seconds to solve this.")
+        print(board, "\n")
+        exit(0)
+    print(R, "\n\n[-] Couldn't solve...\n", W)
+    exit(1)
 
 
 if __name__ == "__main__":
