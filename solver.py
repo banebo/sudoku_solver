@@ -306,7 +306,7 @@ class Board:
                 possible_vals = set.difference(all_vals, vUhUb)
                 node.set_possible_vals(possible_vals)
 
-    def solve(self, verbose=False):
+    def solve_rand(self, verbose=False):
         '''
             Solves the board recursivly
             1. ckecks if the board is solved
@@ -337,7 +337,27 @@ class Board:
             val = random.choice(list(node.get_possible_vals()))
             node.remove_poss_val(val)
             node.set_value(val)
-            if self.solve(verbose):
+            if self.solve_rand(verbose):
+                return True
+        node.set_value(0)
+        return False
+
+    def solve_rek(self, verbose=False):
+        ''' Like the solve_rand, just this one doesn't use random '''
+        if verbose:
+            time.sleep(0.5)
+            print(self.__str__())
+        if self.is_solved():
+            return True
+        if not self.board_is_valid():
+            return False
+        self.assign_possible_vals()
+        unsolved_list = sorted(self.get_unsolved(),
+                               key=lambda x: len(x.get_possible_vals()))
+        node = unsolved_list[0]
+        for val in node.get_possible_vals():
+            node.set_value(val)
+            if self.solve_rek(verbose):
                 return True
         node.set_value(0)
         return False
@@ -366,7 +386,7 @@ def main():
     print(board)
     now1 = datetime.datetime.now()
     print("\n[*] Solving...")
-    if board.solve(verbose=False):
+    if board.solve_rek(verbose=False):
         print("[+] Done")
         now2 = datetime.datetime.now()
         delta_t = now2 - now1
