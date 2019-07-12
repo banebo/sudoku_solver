@@ -1,14 +1,14 @@
-#sudoku_solver#
+# sudoku_solver
 
 Solves sudoku puzzles. 
 
-##Description
+## Description
 
 This program is used for solving sudoku puzzles. It reads from a txt file which
 contains the board. The values that are not written on the initial board are
 written as 0 (zero). The numbers are separated with a space.
 
-Board txt file example:
+## Board txt file example:
 
 ```txt
         4 5 0 3 0 1 0 0 6
@@ -22,7 +22,7 @@ Board txt file example:
         0 2 4 1 3 6 0 0 0
 ```
 
-##Usage
+## Usage
 
 ```bash
 python3 sudoku_solver.py <path_to_board>
