@@ -2,9 +2,12 @@
 
 Solves sudoku puzzles. 
 
-Content
-_______
--[Description](#description) 
+## Content
+
+- [Description](#description) 
+- [Board file example](#board-txt-file-example) 
+- [Usage](#usage) 
+- [License](#license) 
 
 ## Description
 
