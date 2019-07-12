@@ -2,6 +2,10 @@
 
 Solves sudoku puzzles. 
 
+Content
+_______
+-[Description](#description) 
+
 ## Description
 
 This program is used for solving sudoku puzzles. It reads from a txt file which
