@@ -12,7 +12,8 @@
 import os
 import datetime
 import time
-import random
+import argparse
+# import random
 # -- import end --
 
 ##################
@@ -28,382 +29,195 @@ C = '\033[36m'  # cyan
 GR = '\033[37m'  # gray
 # -- color end --
 
-###################
-# DATA STRUCTURES #
-###################
+
+def print_board(sudoku_board):
+    board = "\n"
+
+    def get_line(l):
+        line = ""
+        for i in range(l):
+            line += "-"
+        return line
+    board += G + get_line(24) + W
+    board += "\n"
+    # mixed up columns and rows nvm
+    for row in range(9):
+        board += G + "|" + W
+        for column in range(9):
+            node = sudoku_board[row][column]
+            val = str(node['value'])
+            n = " " if val == '0' else val
+            # if node.is_solved():
+            #     n = Orange + n + W
+            board += n + (" " if (column not in [2, 5]) else G + " | " + W)
+        board += G + "|\n" + W
+        if row in [2, 5]:
+            board += G + get_line(24) + W
+            board += "\n"
+    board += G + get_line(24) + W
+    print(board)
 
 
-class BadLineException(Exception):
-    def __init__(self, msg):
-        super().__init__(msg)
-
-
-class Node:
-    """
-        Contains info about one square in the map
-        -> __value = the value of the square
-        -> __initial = the square is given at start
-        -> __possible_vals = set of possible values for the square
-    """
-    def __init__(self, value, coords=None):
-        self.__value = value
-        self.__possible_vals = set()
-        self.__x = None if coords is None else coords[0]
-        self.__y = None if coords is None else coords[1]
-        self.__solved = False if value == 0 else True
-
-    def __str__(self):
-        return str(self.__value)
-
-    # GET
-    def get_value(self): return self.__value
-
-    def get_possible_vals(self): return self.__possible_vals
-
-    def is_solved(self): return self.__solved
-
-    def get_x(self): return self.__x
-
-    def get_y(self): return self.__y
-
-    def get_coords(self): return [self.__x, self.__y]
-    # -- get end --
-
-    # SET
-    def set_value(self, n): self.__value = n
-
-    def set_possible_vals(self, poss_vals):
-        self.__possible_vals = poss_vals
-
-    def set_coords(self, x, y):
-        if self.__x is None:
-            self.__x = x
-        if self.__y is None:
-            self.__y = y
-    # -- set end --
-
-    def remove_poss_val(self, val):
-        if val in self.__possible_vals:
-            self.__possible_vals.remove(val)
-
-
-class Board:
-    """
-        Class Board represents the sudoku board. The matrix of Nodes 9x9.
-        The value fields which are empty is 0 (zero).
-    """
-    def __init__(self, file_name=None, board=None):
-        if not (file_name or board):
-            raise TypeError(R + "\n\n[-] Error in Board.__init__()\n" + W)
-        self.__board = (self.init_board(file_name) if board is None else board)
-        # check if the board is valid
-        if not self.board_is_valid():
-            print(R, "\n\n[-] Board values are not valid!\n", W)
+def check_file_data(file_data):
+    if len(file_data) != 9:
+        print("[%s-%s] %sInvalid file format:%s Invalid number of rows" %
+              (R, W, R, W))
+        exit(1)
+    for line, row in zip(file_data, range(len(file_data))):
+        n = line.strip(" \n").split(" ")
+        if len(n) != 9:
+            e = "[%s-%s] %sInvalid file format: " \
+                "%s Invalid number of columns in row %d"
+            print(e % (R, W, R, W, row+1))
             exit(1)
+        for i in n:
+            try:
+                m = int(i)
+                if m < 0 or m > 9:
+                    raise ValueError()
+            except ValueError:
+                print("[%s-%s] %sInvalid value:%s %s" %
+                      (R, W, R, W, i))
+                exit(1)
 
-    def __str__(self):
-        if not self.__board:
-            return R + "\n[-] No board to print\n" + W
-        board = "\n"
 
-        def get_line(l):
-            line = ""
-            for i in range(l):
-                line += "-"
-            return line
-        board += G + get_line(24) + W
-        board += "\n"
-        for y in range(9):
-            board += G + "|" + W
-            for x in range(9):
-                if not self.__board[x][y]:
-                    return R + "\n[-] Error in board at ({}, {})\n".format(x,
-                                                                           y)
-                node = self.__board[x][y]
-                val = str(node.get_value())
-                n = " " if val == '0' else val
-                if node.is_solved():
-                    n = Orange + n + W
-                board += n + (" " if (x not in [2, 5]) else G + " | " + W)
-            board += G + "|\n" + W
-            if y in [2, 5]:
-                board += G + get_line(24) + W
-                board += "\n"
-        board += G + get_line(24) + W
-        return board
+def init_array():
+    '''
+        Returns an array like [ [ false*9 ] *9 ]
+        initializes the arrays for rows, columns and boxes
+        each array will hold 9 lists, each with 9 boolean False values
+        representing if a number exists ex. if 1 exists in the first row
+        we can check that with rows_data[0][0] the same with ex. 3 in row 5:
+        row_data[4][2]
+    '''
+    return [[False for i in range(9)] for i in range(9)]
 
-    def init_board(self, file_name):
-        # check if the file exists
-        file_name = file_name.strip()
-        if os.path.isfile("boards/" + file_name):
-            file_name = "boards/" + file_name
-        if not (os.path.isfile(file_name)):
-            print(R + "\n\n[-] Bad PATH to board file\n" + W)
-            exit(1)
-        file = open(file_name, "r")
-        lines = file.readlines()
-        file.close()
-        if len(lines) != 9:
-            print(R, "\n\n[-] Board format error, expected 9x9\n", W)
-            exit(1)
-        board = [[] for __ in range(9)]  # the board 9x9
-        for line, counter in zip(lines, range(9)):
-            info = line.strip(" \n").split(" ")
-            if len(info) != 9:
-                err = R + "\n\n[-] Invalid line {}\n" + W
-                raise BadLineException(err.format(counter))
-            error_msg = R + "\n\n[-] Invalid value '{}' at line {}\n" + W
-            for x, val in enumerate(info):
-                try:
-                    n = eval(val.strip(" \n"))
-                except NameError:
-                    print(error_msg.format(val.strip(" \n"), counter))
-                    exit(1)
-                if (type(n) == int) and (0 <= n < 10):
-                    board[x].append(Node(n))
-                else:
-                    raise BadLineException(error_msg.format(n, counter))
-                    exit(1)
-        # set node coords
-        for y in range(9):
-            for x in range(9):
-                board[x][y].set_coords(x, y)
-        return board
 
-    def board_is_valid(self, board_obj=None):
-        '''
-            Checks if the board is valid, no double values in row, columns and
-            segments. Return True / False
-        '''
-        board = self if board_obj is None else board_obj
-        # check horizontal(l)y and vertical(l)y
-        for i in range(9):
-            h_line = board.get_horizontals(ypos=i)
-            v_line = board.get_verticals(xpos=i)
-            h_line = [i for i in h_line if i != 0]
-            v_line = [i for i in v_line if i != 0]
-            h_cond = len(h_line) == len(set(h_line))
-            v_cond = len(v_line) == len(set(v_line))
-            if not (h_cond and v_cond):
-                return False
-        # check segments
-        for j in range(0, 9, 3):
-            for i in range(0, 9, 3):
-                tmp_node = Node(0, coords=[i, j])  # needed just for the coords
-                segment = board.get_segment_vals(tmp_node)
-                segment = [i for i in segment if i != 0]
-                if len(segment) != len(set(segment)):
-                    return False
-        return True
+def load_boards(file_path):
+    '''
+        Loads the board from a file and returns a dict 
+        {'board': [[node*9]*9rows], 'rows': [[bool*9]*9rows],
+         'columns': [[bool*9]*9columns], 'boxes': [[bool*9]*9boxes]}
+    '''
+    # initialize board and data
+    board = [[] for i in range(9)]
+    rows_data = init_array()
+    columns_data = init_array()
+    box_data = init_array()
+    # check file existence & access
+    if not os.path.isfile(file_path):
+        print("[%s-%s] %sError:%s File does not exists on path: %s" %
+              (R, W, R, W, file_path))
+        exit(1)
+    if not os.access(file_path, os.R_OK):
+        e = "[%s-%s] %sPermission denied:%s No read permissions for file: %s"
+        print(e % (R, W, R, W, file_path))
+        exit(1)
+    # try loading the file
+    file_data = ""
+    try:
+        with open(file_path, 'r') as file:
+            file_data = file.readlines()
+    except IOError:
+        print("[%s-%s] %sIOError:%s" +
+              " IOError occured while reading the file: %s" %
+              (R, W, R, W, file_path))
+        exit(1)
+    except Exception:
+        print("[%s-%s] %sError:%s Error while reading the file %s" %
+              (R, W, R, W, file_path))
+        exit(1)
+    # check if the file_data format is valid 9x9
+    check_file_data(file_data)
+    # load into board, rows_data, columns_data and box_data
+    for line, row in zip(file_data, range(len(file_data))):
+        data = line.strip(" \n").split(" ")
+        for n, column in zip(data, range(9)):
+            # into board
+            board[row].append({'value': int(n), 'possible_vals': {}})
+            node = board[row][column]
+            if node['value'] != 0:
+                # into rows and columns data
+                rows_data[row][node['value']-1] = True
+                columns_data[column][node['value']-1] = True
+                # into box data
+                n = 0
+                # if in first three rows
+                if 0 <= row and row <= 2:
+                    n = 0
+                # if in middle three rows
+                if 3 <= row and row <= 5:
+                    n = 3
+                # if in last three rows
+                if 6 <= row and row <= 8:
+                    n = 6
+                # first three columns
+                if 0 <= column and column <= 2:
+                    box_data[n][node['value']-1] = True  # n+0
+                # middle three columns
+                if 3 <= column and column <= 5:
+                    box_data[n+1][node['value']-1] = True
+                # last three columns
+                if 6 <= column and column <= 8:
+                    box_data[n+2][node['value']-1] = True
 
-    def is_solved(self, board_obj=None):
-        ''' Check if the board is solved, return True / False '''
-        board = self if board_obj is None else board_obj
-        if len(board.get_unsolved()) == 0:
-            if board.board_is_valid():
-                return True
-        return False
+    return {'board': board, 'rows': rows_data,
+            'columns': columns_data, 'boxes': box_data}
 
-    # Get
-    def get_board(self): return self.__board
 
-    def get_unsolved(self, board_obj=None):
-        ''' Return a list of nodes where value is 0 (zero) '''
-        board = self.__board if board_obj is None else board_obj.get_board()
-        unsolved = []
-        for y in range(9):
-            for x in range(9):
-                if board[x][y].get_value() == 0:
-                    unsolved.append(board[x][y])
-        return unsolved
-
-    def get_verticals(self, node_obj=None, xpos=None):
-        '''
-            Returns a list of values in a vertical line of the board; x is same
-            -> node_obj - object of type Node
-            -> xpos - integer val, the x position
-        '''
-        if (node_obj is None) and (xpos is None):
-            return []
-        x = xpos if node_obj is None else node_obj.get_x()
-        vals = []
-        for y in range(9):
-            vals.append(self.__board[x][y].get_value())
-        return vals
-
-    def get_horizontals(self, node_obj=None, ypos=None):
-        '''
-            Returns a list of values in a horizontal line of the board; y is
-            same.
-            -> node_obj - object of type Node
-            -> ypos - integer val, the y postition
-        '''
-        if (node_obj is None) and (ypos is None):
-            return []
-        y = ypos if node_obj is None else node_obj.get_y()
-        vals = []
-        for x in range(9):
-            vals.append(self.__board[x][y].get_value())
-        return vals
-
-    def get_box_vals(self, x1, x2, y1, y2):
-        ''' Just a helper function for get_segment_vals() '''
-        vals = []
-        for y in range(y1, y2+1):
-            for x in range(x1, x2+1):
-                val = self.__board[x][y].get_value()
-                vals.append(val)
-        return vals
-
-    def get_segment_vals(self, node_obj):
-        '''
-            Return a list of values in the segment where the node_obj is placed
-            -> node_obj - object of type Node
-        '''
-        if node_obj is None:
-            return []
-        x_seg = [[] for __ in range(3)]
-        y_seg = [[] for __ in range(3)]
-        index = 0
-        for i in range(9):
-            x_seg[index].append(i)
-            y_seg[index].append(i)
-            if (i+1) % 3 == 0:
-                index += 1
-        x_coord, y_coord = node_obj.get_coords()
-        vals = []
-        for x_list in x_seg:
-            if x_coord in x_list:
-                for y_list in y_seg:
-                    if y_coord in y_list:
-                        x1, x2 = x_list[0], x_list[-1]
-                        y1, y2 = y_list[0], y_list[-1]
-                        vals = self.get_box_vals(x1, x2, y1, y2)
-        return vals
-    # -- get end --
-
-    def assign_possible_vals(self):
-        ''' Assigns possible values to all zero value nodes '''
-        if self.__board is None:
-            print("\n\n[-] No board\n")
-            exit(1)
-        for y in range(9):
-            for x in range(9):
-                if self.__board[x][y].get_value() != 0:
-                    continue
-                node = self.__board[x][y]
-                v_set = set(self.get_verticals(node_obj=node))  # vertical
-                h_set = set(self.get_horizontals(node_obj=node))  # horizontal
-                box_set = set(self.get_segment_vals(node_obj=node))  # segment
-                if 0 in v_set:
-                    v_set.remove(0)
-                if 0 in h_set:
-                    h_set.remove(0)
-                if 0 in box_set:
-                    box_set.remove(0)
-                all_vals = set([i for i in range(1, 10)])
-                vUhUb = set.union(v_set, h_set, box_set)  # v_set U h_set U box
-                possible_vals = set.difference(all_vals, vUhUb)
-                node.set_possible_vals(possible_vals)
-
-    def solve_rand(self, verbose=False):
-        '''
-            Solves the board recursivly
-            1. ckecks if the board is solved
-            2. checks if the board is valid
-            3. assigns possible vals to nodes where value is 0 (zero)
-            4. sorts the unsolved node list so that the nodes with the least
-               possible values are first in line
-            5. assigns the first in the list to 'node' var.
-            6. for i: i > 0; i < len(node.__possible_values())
-               - get a random value 'val' from possible_vals
-               - remove that value from possible_vals
-               - set node.__value to 'val'
-               - start recursion
-            7. before exiting, set node.__value to 0 (zero)
-        '''
-        if verbose:
-            time.sleep(0.3)
-            print(self.__str__())
-        if self.is_solved():
-            return True
-        if not self.board_is_valid():
-            return False
-        self.assign_possible_vals()
-        unsolved_list = sorted(self.get_unsolved(),
-                               key=lambda x: len(x.get_possible_vals()))
-        node = unsolved_list[0]
-        for i in range(len(node.get_possible_vals())):
-            val = random.choice(list(node.get_possible_vals()))
-            node.remove_poss_val(val)
-            node.set_value(val)
-            if self.solve_rand(verbose):
-                return True
-        node.set_value(0)
-        return False
-
-    def solve_rek(self, verbose=False):
-        ''' Like the solve_rand, just this one doesn't use random '''
-        if verbose:
-            time.sleep(0.5)
-            print(self.__str__())
-        if self.is_solved():
-            return True
-        if not self.board_is_valid():
-            return False
-        self.assign_possible_vals()
-        unsolved_list = sorted(self.get_unsolved(),
-                               key=lambda x: len(x.get_possible_vals()))
-        node = unsolved_list[0]
-        for val in node.get_possible_vals():
-            node.set_value(val)
-            if self.solve_rek(verbose):
-                return True
-        node.set_value(0)
-        return False
-# -- data_struct end --
-
-########
-# MAIN #
-########
+def get_args():
+    parser = argparse.ArgumentParser()
+    group_q_v = parser.add_mutually_exclusive_group()
+    group_interactive_board_only = parser.add_mutually_exclusive_group()
+    group_q_v.add_argument("-v", "--verbose",
+                           dest="verbose",
+                           default=False,
+                           action="store_true",
+                           help="Verbose")
+    group_q_v.add_argument("-q", "--quiet",
+                           dest="quiet",
+                           default=False,
+                           action="store_true",
+                           help="Quiet")
+    group_interactive_board_only.add_argument("-i", "--interactive",
+                                              dest="interactive",
+                                              action="store_true",
+                                              help="Interactive mode")
+    group_interactive_board_only.add_argument("-o", "--board-only",
+                                              dest="board_only",
+                                              action="store_true",
+                                              help="Print board solution")
+    parser.add_argument("-b", "--board",
+                        dest="board_path",
+                        required=False,
+                        type=str,
+                        help="Path to board file")
+    return parser.parse_args()
 
 
 def main():
-    os.system("clear")
-    print(P,
-          '''
-    _______ _     _ ______   _____  _     _ _     _
-    |______ |     | |     \ |     | |____/  |     |
-    ______| |_____| |_____/ |_____| |    \_ |_____|
+    args = get_args()
+    # TODO: set args to exec func
 
-    _______  _____         _    _ _______  ______
-    |______ |     | |       \  /  |______ |_____/
-    ______| |_____| |_____   \/   |______ |    \_
+    # initializes the arrays for rows, columns and boxes
+    # each array will hold 9 lists, each with 9 boolean False values
+    # representing if a number exists ex. if 1 exists in the first row
+    # we can check that with rows_data[0][0] the same with ex. 3 in row 5:
+    # row_data[4][2]
 
-          ''', W)
-    file = input("\n[?] Enter file name: ")
-    board = Board(file_name=file)
-    print(board)
-    now1 = datetime.datetime.now()
-    print("\n[*] Solving...")
-    if board.solve_rek(verbose=False):
-        print("[+] Done")
-        now2 = datetime.datetime.now()
-        delta_t = now2 - now1
-        print("\n[*] It took me {:.2f}".format(delta_t.total_seconds()),
-              "seconds to solve this.")
-        print(board, "\n")
-        exit(0)
-    print(R, "\n\n[-] Couldn't solve...\n", W)
-    exit(1)
+    # create the nodes and the board
+    # a node has a value and a set of possible values
+    # the board if ofc 9x9
+    if(args.board_path):
+        data = load_boards(args.board_path)
+
+    print_board(data['board'])
+    print("rows[0]: ", data['rows'][0])
+    print("columns[1]: ", data['columns'][1])
+    print("boxes[0]: ", data['boxes'][0])
+
+
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print(R + "\n\n[-] Keyboard Interrupt\n" + W)
-        exit(1)
-    except EOFError:
-        print(R + "\n\n[-] Exiting...\n" + W)
-        exit(0)
+    main()
