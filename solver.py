@@ -30,6 +30,95 @@ GR = '\033[37m'  # gray
 # -- color end --
 
 
+def get_col_vals(board, columns, column):
+    '''
+        Get the board, the column matrix and the column number
+        Returns a set of values for that column which already exist (value!=0)
+    '''
+    vals = set()
+    column_data = columns[column]
+    for n in range(9):
+        if column_data[n]:
+            vals.add(n+1)  # add n+1 as possible value
+    return vals
+
+
+def get_row_vals(board, rows, row):
+    '''
+        Get the board, rows matrix and the row number
+        Returns a set of values for that row which already exist (value != 0)
+    '''
+    vals = set()
+    row_data = rows[row]
+    for n in range(9):
+        if row_data[n]:
+            vals.add(n+1)  # add n+1 as poosible value
+    return vals
+
+
+def get_box_vals(board, boxes, row, column):
+    '''
+        Get the board, the boxes boolen matrix, the row number and
+        the column number.
+        Returns a set of values for that box whitch already exist (value != 0)
+    '''
+    # get box
+    n = 0
+    if 3 <= row and row <= 5:
+        n = 3
+    elif 6 <= row and row <= 8:
+        n = 6
+    if 0 <= column and column <= 2:
+        box = boxes[n]
+    elif 3 <= column and column <= 5:
+        box = boxes[n+1]
+    elif 6 <= column and column <= 8:
+        box = boxes[n+2]
+    # get poss values for box
+    vals = set()
+    for n in range(9):
+        if box[n]:
+            vals.add(n+1)
+    return vals
+
+
+def assign_possible_vals(data):
+    '''
+        Assigns possible values for each node
+        keys in dict:
+            board -> the board [[{'value': int, 'possible_vals': set()}*9]*9]
+            rows -> matrix of booleans for row data [[bool*9] *9]
+            columns -> matrix of boolean for columns data [[bool*9] *9]
+            boxes -> matrix of booleans for columns data [[bool*9] *9]
+            unsolved -> [{'row': int, 'column': int} *number_of_unsolved_nodes]
+    '''
+    if len(data['unsolved']) <= 0:
+        return data
+    board = data['board']
+    rows = data['rows']
+    boxes = data['boxes']
+    columns = data['columns']
+    for node in data['unsolved']:
+        row = node['row']
+        column = node['column']
+        row_vals = get_row_vals(board, rows, row)
+        column_vals = get_col_vals(board, columns, column)
+        box_vals = get_box_vals(board, boxes, row, column)
+        # check if 0 exists, if true -> remove it
+        if 0 in column_vals:
+            column_vals.remove(0)
+        if 0 in row_vals:
+            row_vals.remove(0)
+        if 0 in box_vals:
+            box_vals.remove(0)
+        rUcUb = set.union(row_vals, column_vals, box_vals)
+        all_vals = set([i for i in range(1, 9+1)])
+        possible_vals = set.difference(all_vals, rUcUb)
+        board[row][column]['possible_vals'] = possible_vals
+
+    return data
+
+
 def print_board(sudoku_board):
     board = "\n"
 
@@ -95,15 +184,18 @@ def init_array():
 
 def load_boards(file_path):
     '''
-        Loads the board from a file and returns a dict 
+        Loads the board from a file and returns a dict
         {'board': [[node*9]*9rows], 'rows': [[bool*9]*9rows],
-         'columns': [[bool*9]*9columns], 'boxes': [[bool*9]*9boxes]}
+         'columns': [[bool*9]*9columns], 'boxes': [[bool*9]*9boxes],
+         'unsolved': [ {'row': int, 'column': int}*number_of_not_solved_nodes]}
+        node = {'value': int, 'possible_vals': set()}
     '''
     # initialize board and data
     board = [[] for i in range(9)]
     rows_data = init_array()
     columns_data = init_array()
     box_data = init_array()
+    unsolved_data = []
     # check file existence & access
     if not os.path.isfile(file_path):
         print("[%s-%s] %sError:%s File does not exists on path: %s" %
@@ -114,7 +206,6 @@ def load_boards(file_path):
         print(e % (R, W, R, W, file_path))
         exit(1)
     # try loading the file
-    file_data = ""
     try:
         with open(file_path, 'r') as file:
             file_data = file.readlines()
@@ -131,38 +222,38 @@ def load_boards(file_path):
     check_file_data(file_data)
     # load into board, rows_data, columns_data and box_data
     for line, row in zip(file_data, range(len(file_data))):
-        data = line.strip(" \n").split(" ")
-        for n, column in zip(data, range(9)):
+        line = line.strip(" \n").split(" ")
+        for n, column in zip(line, range(9)):  # for each number in a row-line
             # into board
-            board[row].append({'value': int(n), 'possible_vals': {}})
-            node = board[row][column]
+            board[row].append({'value': int(n), 'possible_vals': set()})
+            node = board[row][column]  # the previously appended node (dict)
             if node['value'] != 0:
                 # into rows and columns data
                 rows_data[row][node['value']-1] = True
                 columns_data[column][node['value']-1] = True
                 # into box data
-                n = 0
                 # if in first three rows
-                if 0 <= row and row <= 2:
-                    n = 0
+                n = 0
                 # if in middle three rows
                 if 3 <= row and row <= 5:
                     n = 3
                 # if in last three rows
-                if 6 <= row and row <= 8:
+                elif 6 <= row and row <= 8:
                     n = 6
                 # first three columns
                 if 0 <= column and column <= 2:
                     box_data[n][node['value']-1] = True  # n+0
                 # middle three columns
-                if 3 <= column and column <= 5:
+                elif 3 <= column and column <= 5:
                     box_data[n+1][node['value']-1] = True
                 # last three columns
-                if 6 <= column and column <= 8:
+                elif 6 <= column and column <= 8:
                     box_data[n+2][node['value']-1] = True
+            else:
+                unsolved_data.append({'row': row, 'column': column})
 
-    return {'board': board, 'rows': rows_data,
-            'columns': columns_data, 'boxes': box_data}
+    return {'board': board, 'rows': rows_data, 'columns': columns_data,
+            'boxes': box_data, 'unsolved': unsolved_data}
 
 
 def get_args():
@@ -215,9 +306,13 @@ def main():
     print("rows[0]: ", data['rows'][0])
     print("columns[1]: ", data['columns'][1])
     print("boxes[0]: ", data['boxes'][0])
+    print("unsolved: ", data['unsolved'])
 
-
-
+    data = assign_possible_vals(data)
+    # print assigned vals
+    for node in data['unsolved']:
+        n = data['board'][node['row']][node['column']]
+        print("unsolved: r[{}] c[{}] poss_vals[{}]".format(node['row'], node['column'], n['possible_vals']))
 
 if __name__ == "__main__":
     main()
