@@ -47,9 +47,12 @@ chmod 777 sudoku_solver.py
 ## Optional arguments
 Specify path to board
 ```bash ./solver.py -b <path_to_board>``` 
-```bash ./solver.py -v ``` Verbose
-```bash ./solver.py -s ``` Only output the solved board
-```bash ./solver.py -t ``` Output as file format
+Verbose
+```bash ./solver.py -v ``` 
+Only output the solved board
+```bash ./solver.py -s ``` 
+Only output as file format
+```bash ./solver.py -t ``` 
 
 
 ## License
