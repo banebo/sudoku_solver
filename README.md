@@ -1,12 +1,13 @@
-# sudoku_solver
+# sudoku_solver v.2.1
 
-Solves sudoku puzzles. 
+Solves sudoku puzzles faster than v.1.1
 
 ## Content
 
 - [Description](#description) 
 - [Board file example](#board-txt-file-example) 
-- [Usage](#usage) 
+- [Usage](#usage)
+- [Optional arguments](#optional-arguments) 
 - [License](#license) 
 
 ## Description
@@ -32,7 +33,7 @@ written as 0 (zero). The numbers are separated with a space.
 ## Usage
 
 ```bash
-python3 sudoku_solver.py <path_to_board>
+python3 sudoku_solver.py
 ```
 or
 
@@ -40,8 +41,15 @@ or
 chmod 777 sudoku_solver.py
 ```
 ```bash
-./sudoku_solver.py <path_to_board>
+./sudoku_solver.py 
 ```
+
+## Optional arguments
+```txt -b <path_to_board>``` Specify path to board
+```txt -v ``` Verbose
+```txt -s ``` Only output the solved board
+```txt -t ``` Output as file format
+
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
