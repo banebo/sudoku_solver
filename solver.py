@@ -98,6 +98,8 @@ def solve_rek(data):
 
 
 def solve(data):
+    if is_solved(data):
+        return True
     return solve_rek(data)
 
 
@@ -210,7 +212,7 @@ def assign_possible_vals(data):
     return data
 
 
-def print_board(sudoku_board):
+def str_board(sudoku_board):
     board = "\n"
 
     def get_line(l):
@@ -233,8 +235,8 @@ def print_board(sudoku_board):
         if row in [2, 5]:
             board += G + get_line(24) + W
             board += "\n"
-    board += G + get_line(24) + W
-    print(board)
+    board += G + get_line(24) + W + '\n'
+    return board
 
 
 def get_box_number(row, column):
@@ -298,7 +300,7 @@ def init_array():
     return [[False for i in range(9)] for i in range(9)]
 
 
-def load_boards(file_path):
+def load_board(file_path):
     '''
         Loads the board from a file and returns a dict
         {'board': [[node*9]*9rows], 'rows': [[bool*9]*9rows],
@@ -366,26 +368,21 @@ def load_boards(file_path):
 
 def get_args():
     parser = argparse.ArgumentParser()
-    group_q_v = parser.add_mutually_exclusive_group()
-    group_interactive_board_only = parser.add_mutually_exclusive_group()
-    group_q_v.add_argument("-v", "--verbose",
-                           dest="verbose",
-                           default=False,
-                           action="store_true",
-                           help="Verbose")
-    group_q_v.add_argument("-q", "--quiet",
-                           dest="quiet",
-                           default=False,
-                           action="store_true",
-                           help="Quiet")
-    group_interactive_board_only.add_argument("-i", "--interactive",
-                                              dest="interactive",
-                                              action="store_true",
-                                              help="Interactive mode")
-    group_interactive_board_only.add_argument("-o", "--board-only",
-                                              dest="board_only",
-                                              action="store_true",
-                                              help="Print board solution")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("-v", "--verbose",
+                       dest="verbose",
+                       default=False,
+                       action="store_true",
+                       help="Verbose")
+    group.add_argument("-t", "--txt-format",
+                       dest="board_only",
+                       action="store_true",
+                       help="Prints board to stdout in file format")
+    group.add_argument("-s", "--solution-only",
+                       dest="solution_only",
+                       default=False,
+                       action="store_true",
+                       help="Print only the solution")
     parser.add_argument("-b", "--board",
                         dest="board_path",
                         required=False,
@@ -394,35 +391,95 @@ def get_args():
     return parser.parse_args()
 
 
-def main():
-    args = get_args()
-    # TODO: set args to exec func
+def solution_only(data):
+    if solve(data):
+        print(str_board(data['board']))
+        exit(0)
+    else:
+        exit(1)
 
-    # initializes the arrays for rows, columns and boxes
-    # each array will hold 9 lists, each with 9 boolean True/False values
-    # representing if a number exists ex. if 1 exists in the first row
-    # we can check that with rows_data[0][0] the same with ex. 3 in row 5:
-    # row_data[4][2]
 
-    # create the nodes and the board
-    # a node has a value and a set of possible values
-    # the board if ofc 9x9
-    if(args.board_path):
-        data = load_boards(args.board_path)
+def output_as_txt_format(data):
+    board = data['board']
+    if solve(data):
+        line = ""
+        for row in range(9):
+            for column in range(9):
+                line += '%d ' % board[row][column]['value']
+            line = line.strip()
+            line += '\n' if row != 8 else ""
+        print(line)
+        exit(0)
+    exit(1)
 
-    print_board(data['board'])
-    print("\n[%s*%s] Solving..." % (O, W))
+
+def verbose(data):
+    os.system('clear') if os.name == 'posix' else os.system('clear')
+    print(O,
+          '''
+    _______ _     _ ______   _____  _     _ _     _
+    |______ |     | |     \ |     | |____/  |     |
+    ______| |_____| |_____/ |_____| |    \_ |_____|
+    _______  _____         _    _ _______  ______
+    |______ |     | |       \  /  |______ |_____/
+    ______| |_____| |_____   \/   |______ |    \_
+             _    _    ______       __ 
+            | |  | |  (_____ \     /  |
+            | |  | |    ____) )   |_/ |
+             \ \/ /    / ____/      | |
+              \  /_    |  |____  _  | |
+               \/(_)   |_______|(_) |_|
+          ''', W)
+
+    print(str_board(data['board']))
+    if is_solved(data):
+        print("[%s*%s] The board is already solved\n" % (O, W))
+        exit(1)
+    print("[%s*%s] Solving..." % (O, W))
     now1 = datetime.datetime.now()
     if solve(data):
         print("[%s+%s] Done" % (G, W))
         now2 = datetime.datetime.now()
         delta_t = now2 - now1
-        print_board(data['board'])
-        print("\n[%s*%s] It took me %.3f seconds to solve this.\n" %
+        print("\n[%s*%s] It took me %.3f seconds to solve this." %
               (O, W, delta_t.total_seconds()))
+        print(str_board(data['board']))
         exit(0)
-    print(R, "\n\n[%s-%s] Couldn't solve...\n" % (R, W))
+    print(R, "\n\n[%s-%s] Couldn't solve this one...\n" % (R, W))
     exit(1)
+
+
+def main():
+    args = get_args()
+    if not args.board_path:
+        file_path = str(input("[%s?%s] Enter path to board: " % (P, W)))
+    else:
+        file_path = args.board_path
+
+    # initializes the arrays for rows, columns, boxes and unsolved nodes
+    # each array will hold 9 lists, each with 9 boolean True/False values
+    # representing if a number exists ex. if 1 exists in the first row
+    # we can check that with rowss[0][0] the same with ex. 3 in row 5:
+    # rows[4][2]
+    # data -> dict('board', 'rows', 'columns', 'boxes', 'unsolved')
+    data = load_board(file_path)
+
+    if args.verbose:
+        verbose(data)
+    elif args.board_only:
+        output_as_txt_format(data)
+    elif args.solution_only:
+        solution_only(data)
+    else:
+        print(str_board(data['board']))
+        if is_solved(data):
+            print("[%s*%s] The board is already solved\n" % (O, W))
+            exit(1)
+        if solve(data):
+            print("[%s+%s] Solved:" % (G, W))
+            print(str_board(data['board']))
+        else:
+            print("[%s-%s] Couldn't solve this one...\n" % (R, W))
 
 
 if __name__ == "__main__":
