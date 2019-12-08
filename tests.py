@@ -171,7 +171,7 @@ def verbose(boards_path):
     now2 = datetime.datetime.now()
     print('\n[%s+%s] Done' % (G, W))
     delta_t = now2 - now1
-    print("\n[%s+%s] It took me %.4f seconds to solve %d boards" %
+    print("\n[%s+%s] It took me %.3f seconds to solve %d boards" %
           (G, W, delta_t.total_seconds(), len(boards)))
     print("[%s+%s] The average time per bord is %.3f\n" %
           (G, W, avg))
