@@ -6,6 +6,11 @@
         Sudoku solver
 """
 
+# TODO: check pairs in rows and columns
+# TODO: if len(pos_vals)==1 -> set it as a value; u svakoj rekurziji napravi
+# listu takvih noda posle assign_poss_vals, setuj kao value svima njima, kreni
+# dalje, pri izlasku iz rekurzije resetuj te node
+
 ###########
 # IMPORTS #
 ###########
@@ -215,27 +220,27 @@ def assign_possible_vals(data):
 def str_board(sudoku_board):
     board = "\n"
 
-    def get_line(l):
-        line = ""
-        for i in range(l):
-            line += "-"
-        return line
-    board += G + get_line(24) + W
-    board += "\n"
+    h_separator = G
+    for i in range(25):
+        h_separator += "-"
+    h_separator += W
+    v_separator = '%s%s%s' % (G, '|', W)
+    board += '%s\n' % h_separator
     for row in range(9):
-        board += G + "|" + W
+        board += v_separator
         for column in range(9):
             node = sudoku_board[row][column]
             val = str(node['value'])
             n = " " if val == '0' else val
             if node['is_default']:
-                n = O + n + W
-            board += n + (" " if (column not in [2, 5]) else G + " | " + W)
-        board += G + "|\n" + W
+                n = '%s%s%s' % (O, n, W)
+            n = ' %s' % n if column == 0 else n
+            board += '%s%s' % (n, " " if column not in [2, 5]
+                               else G + " | " + W)
+        board += '%s\n' % v_separator
         if row in [2, 5]:
-            board += G + get_line(24) + W
-            board += "\n"
-    board += G + get_line(24) + W + '\n'
+            board += '%s\n' % h_separator
+    board += h_separator
     return board
 
 
@@ -393,7 +398,7 @@ def get_args():
 
 def solution_only(data):
     if solve(data):
-        print(str_board(data['board']))
+        print(str_board(data['board']), '\n')
         exit(0)
     else:
         exit(1)
@@ -423,7 +428,7 @@ def verbose(data):
     _______  _____         _    _ _______  ______
     |______ |     | |       \  /  |______ |_____/
     ______| |_____| |_____   \/   |______ |    \_
-             _    _   ______       __ 
+             _    _   ______       __
             | |  | | (_____ \     /  |
             | |  | |   ____) )   |_/ |
              \ \/ /   / ____/      | |
@@ -441,9 +446,9 @@ def verbose(data):
         print("[%s+%s] Done" % (G, W))
         now2 = datetime.datetime.now()
         delta_t = now2 - now1
-        print("\n[%s*%s] It took me %.3f seconds to solve this." %
-              (O, W, delta_t.total_seconds()))
         print(str_board(data['board']))
+        print("\n[%s*%s] It took me %.3f seconds to solve this.\n" %
+              (O, W, delta_t.total_seconds()))
         exit(0)
     print(R, "\n\n[%s-%s] Couldn't solve this one...\n" % (R, W))
     exit(1)
@@ -477,7 +482,7 @@ def main():
             exit(1)
         if solve(data):
             print("[%s+%s] Solved:" % (G, W))
-            print(str_board(data['board']))
+            print(str_board(data['board']), '\n')
         else:
             print("[%s-%s] Couldn't solve this one...\n" % (R, W))
 
